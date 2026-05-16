@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { MOCK_USERS } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -23,21 +23,21 @@ const DEPARTMENTS = ['Sales', 'Operations', 'Technology', 'HR', 'Finance', 'Cust
 
 const AdminUsersPage: React.FC = () => {
   const { goals } = useGoalStore();
+  const { addUser, users: globalUsers } = useAuthStore();
   const [search, setSearch]     = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [users, setUsers]        = useState(MOCK_USERS);
   const [form, setForm]          = useState<NewUser>({
     name: '', email: '', department: 'Sales', role: 'employee', managerId: '', designation: '',
   });
   const [errors, setErrors] = useState<Partial<NewUser>>({});
 
-  const filtered = users.filter(u =>
+  const filtered = globalUsers.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     u.department.toLowerCase().includes(search.toLowerCase())
   );
 
-  const managers = users.filter(u => u.role === 'manager' || u.role === 'admin');
+  const managers = globalUsers.filter(u => u.role === 'manager' || u.role === 'admin');
 
   const validate = (): boolean => {
     const e: Partial<NewUser> = {};
@@ -53,7 +53,7 @@ const AdminUsersPage: React.FC = () => {
     if (!validate()) return;
 
     // Check duplicate email
-    if (users.some(u => u.email.toLowerCase() === form.email.toLowerCase())) {
+    if (globalUsers.some(u => u.email.toLowerCase() === form.email.toLowerCase())) {
       setErrors(prev => ({ ...prev, email: 'Email already exists' }));
       return;
     }
@@ -69,7 +69,9 @@ const AdminUsersPage: React.FC = () => {
       avatar:      form.name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
     };
 
-    setUsers(prev => [...prev, newUser as any]);
+    // Add to global store
+    addUser(newUser as any);
+    
     setShowModal(false);
     setForm({ name: '', email: '', department: 'Sales', role: 'employee', managerId: '', designation: '' });
     setErrors({});
@@ -110,7 +112,7 @@ const AdminUsersPage: React.FC = () => {
           <tbody className="divide-y divide-zinc-50">
             {filtered.map(u => {
               const userGoals = goals.filter(g => g.employeeId === u.id);
-              const manager   = users.find(m => m.id === u.managerId);
+              const manager   = globalUsers.find(m => m.id === u.managerId);
               const hasLocked = userGoals.some(g => g.status === 'locked');
               return (
                 <tr key={u.id} className="hover:bg-zinc-50/50 transition-colors">
