@@ -5,10 +5,11 @@ import {
   BarChart3, FileText, ShieldCheck, LogOut, ChevronRight,
   Bell, ChevronDown, Repeat2, Share2,
 } from 'lucide-react';
-import { useAuthStore, MOCK_USERS } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/utils';
 import type { UserRole } from '@/types';
+import { useNotificationStore } from '@/store/notificationStore';
 
 // ─── Nav Config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS: Record<UserRole, { label: string; href: string; icon: React.ElementType }[]> = {
@@ -54,7 +55,6 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="fixed top-0 left-0 h-screen w-60 bg-white border-r border-zinc-100 flex flex-col z-30 shadow-soft">
-      {/* Logo */}
       <div className="px-5 py-5 border-b border-zinc-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shadow-soft">
@@ -67,7 +67,6 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(item => (
           <NavLink
@@ -91,7 +90,6 @@ export const Sidebar: React.FC = () => {
           </NavLink>
         ))}
 
-        {/* Demo: Switch Role */}
         <div className="pt-3">
           <p className="px-3 text-[10px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">Demo</p>
           <button
@@ -124,7 +122,6 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      {/* User Footer */}
       <div className="px-3 py-3 border-t border-zinc-100">
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-zinc-50 transition-all group">
           <Avatar name={user.name} size="sm" />
@@ -147,16 +144,14 @@ interface TopBarProps { title: string; subtitle?: string; }
 export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { notifications, markAllRead } = useNotificationStore();
   const [showNotifs, setShowNotifs]   = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const NOTIFICATIONS = [
-    { id: 1, text: 'Aman Sharma submitted goal sheet for approval', time: '10 min ago', unread: true,  color: 'bg-violet-400' },
-    { id: 2, text: 'Q2 check-in window opens tomorrow', time: '1 hr ago',  unread: true,  color: 'bg-amber-400' },
-    { id: 3, text: 'Priya Mehta\'s goals approved & locked', time: '2 hr ago',  unread: false, color: 'bg-emerald-400' },
-  ];
+  const filteredNotifs = notifications.filter(n => n.role === user?.role || n.role === 'employee');
+  const unreadCount = filteredNotifs.filter(n => n.unread).length;
 
   return (
     <header className="h-16 bg-white border-b border-zinc-100 flex items-center px-6 gap-4 sticky top-0 z-20">
@@ -166,41 +161,45 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* ── Notification Bell ── */}
         <div className="relative">
           <button
             onClick={() => { setShowNotifs(s => !s); setShowProfile(false); }}
             className="relative p-2 rounded-xl hover:bg-zinc-50 transition-all"
           >
-            <Bell size={18} className="text-zinc-400" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-violet-500 rounded-full" />
+            <Bell size={18} className={unreadCount > 0 ? 'text-violet-600' : 'text-zinc-400'} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-violet-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
           {showNotifs && (
-            <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-zinc-100 z-50 overflow-hidden">
+            <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-zinc-100 z-50 overflow-hidden animate-slide-up">
               <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
                 <span className="text-sm font-semibold text-zinc-800">Notifications</span>
-                <span className="text-xs text-violet-600 font-medium cursor-pointer hover:underline">Mark all read</span>
+                <button onClick={markAllRead} className="text-xs text-violet-600 font-medium hover:underline">Mark all read</button>
               </div>
               <div className="divide-y divide-zinc-50 max-h-72 overflow-y-auto">
-                {NOTIFICATIONS.map(n => (
+                {filteredNotifs.length > 0 ? filteredNotifs.map(n => (
                   <div key={n.id} className={cn('flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors cursor-pointer', n.unread && 'bg-violet-50/40')}>
-                    <div className={cn('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', n.color)} />
+                    <div className={cn('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', 
+                      n.type === 'error' ? 'bg-rose-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-violet-500')} />
                     <div className="flex-1">
-                      <p className="text-xs text-zinc-700 leading-relaxed">{n.text}</p>
+                      <p className="text-xs text-zinc-700 leading-relaxed font-medium">{n.text}</p>
                       <p className="text-[10px] text-zinc-400 mt-0.5">{n.time}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="px-4 py-2.5 border-t border-zinc-100 text-center">
-                <span className="text-xs text-violet-600 font-medium cursor-pointer hover:underline">View all notifications</span>
+                )) : (
+                  <div className="px-4 py-10 text-center text-zinc-400 text-xs italic">
+                    No new notifications
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* ── Avatar / Profile ── */}
         {user && (
           <div className="relative">
             <button
@@ -211,7 +210,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
             </button>
 
             {showProfile && (
-              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-zinc-100 z-50 overflow-hidden">
+              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-zinc-100 z-50 overflow-hidden animate-slide-up">
                 <div className="px-4 py-3 border-b border-zinc-100">
                   <p className="text-sm font-semibold text-zinc-800">{user.name}</p>
                   <p className="text-xs text-zinc-400">{user.email}</p>
@@ -234,14 +233,12 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
         )}
       </div>
 
-      {/* Close dropdowns on outside click */}
       {(showNotifs || showProfile) && (
         <div className="fixed inset-0 z-40" onClick={() => { setShowNotifs(false); setShowProfile(false); }} />
       )}
     </header>
   );
 };
-
 
 // ─── App Layout ───────────────────────────────────────────────────────────────
 interface AppLayoutProps {
