@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useGoalStore } from '@/store/goalStore';
-import { MOCK_USERS } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { ProgressBar, ScoreRing } from '@/components/ui/Progress';
 import { cn } from '@/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts';
@@ -11,8 +11,9 @@ const PIE_COLORS = ['#8b5cf6','#22c55e','#f59e0b','#f43f5e','#06b6d4','#ec4899',
 
 const AdminAnalyticsPage: React.FC = () => {
   const { goals, checkins } = useGoalStore();
-  const employees = MOCK_USERS.filter(u => u.role === 'employee');
-  const managers  = MOCK_USERS.filter(u => u.role === 'manager');
+  const { users } = useAuthStore();
+  const employees = users.filter(u => u.role === 'employee');
+  const managers  = users.filter(u => u.role === 'manager');
 
   // QoQ trend
   const qoqData = [
@@ -44,7 +45,7 @@ const AdminAnalyticsPage: React.FC = () => {
 
   // Manager effectiveness
   const managerData = managers.map(mgr => {
-    const team = MOCK_USERS.filter(u => u.managerId === mgr.id);
+    const team = users.filter(u => u.managerId === mgr.id);
     const approvedSheets = goals.filter(g => team.some(t => t.id === g.employeeId) && (g.status === 'locked' || g.status === 'approved'));
     const rate = team.length ? Math.min(100, Math.round((approvedSheets.length / (team.length * 2)) * 100)) : 0;
     return { name: mgr.name.split(' ')[0], department: mgr.department, rate, team: team.length };
