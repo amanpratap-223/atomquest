@@ -1,7 +1,7 @@
 # 🚀 AtomQuest — Goal Setting & Tracking Portal
 ### Hackathon 1.0 · In-House Performance Management System
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/amanpratap-223/atomquest/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://typescriptlang.org)
 [![Stack](https://img.shields.io/badge/stack-MERN-green)](https://mongodb.com)
 [![Azure AD](https://img.shields.io/badge/SSO-Azure_AD-0078D4)](https://azure.microsoft.com)
@@ -246,7 +246,7 @@ Webhook-based **Adaptive Card** notifications for all events:
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/atomberg/atomquest.git
+git clone https://github.com/amanpratap-223/atomquest.git
 cd atomquest
 npm install          # Frontend
 cd server && npm install  # Backend
