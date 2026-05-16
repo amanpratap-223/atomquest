@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { ScoreRing, ProgressBar } from '@/components/ui/Progress';
 import { Badge } from '@/components/ui/Badge';
 import { computeProgressScore, getThrustColor, getProgressStatusLabel, cn } from '@/utils';
 import type { CheckinPeriod, GoalProgressStatus } from '@/types';
-import { Calendar, AlertTriangle, CheckCircle2, Clock, Send, Lock } from 'lucide-react';
+import { Calendar, AlertTriangle, CheckCircle2, Clock, Send, Lock, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PERIODS: { key: CheckinPeriod; label: string; window: string; status: 'past' | 'active' | 'upcoming' }[] = [
@@ -48,12 +49,17 @@ const CheckinsPage: React.FC = () => {
     return computeProgressScore(goal.uomType, goal.target, ach);
   };
 
+  const { addNotification } = useNotificationStore();
+
   const handleSave = async () => {
     setSaving(true);
     await new Promise(r => setTimeout(r, 600));
+    
+    let hasData = false;
     lockedGoals.forEach(goal => {
       const ach = getAchievement(goal.id);
       if (ach !== '' && ach !== undefined) {
+        hasData = true;
         submitCheckin({
           goalId: goal.id, employeeId: user.id, cycleId: 'cy1',
           period: activePeriod,
@@ -62,8 +68,21 @@ const CheckinsPage: React.FC = () => {
         });
       }
     });
+
+    if (hasData) {
+      // Notify the Manager
+      addNotification({
+        text: `✅ ${user.name} has submitted ${activePeriod} check-ins for your review.`,
+        type: 'success',
+        role: 'manager',
+      });
+      
+      toast.success(`${activePeriod} check-in submitted successfully! Manager has been notified.`);
+    } else {
+      toast.error('Please enter at least one achievement value.');
+    }
+    
     setSaving(false);
-    toast.success(`${activePeriod} check-in submitted successfully!`);
   };
 
   const filledCount = lockedGoals.filter(g => getAchievement(g.id) !== '').length;
@@ -214,10 +233,23 @@ const CheckinsPage: React.FC = () => {
               </div>
 
               {/* Score Preview */}
-              {ach !== '' && ach !== undefined && (
-                <div className="mt-3 pt-3 border-t border-zinc-100">
-                  <ProgressBar value={score} size="sm" />
-                  <p className="text-xs text-zinc-400 mt-1.5">Progress Score: <span className={cn('font-semibold', score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600')}>{score}%</span></p>
+              {(ach !== '' && ach !== undefined) && (
+                <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between">
+                  <div>
+                    <ProgressBar value={score} size="sm" className="w-48" />
+                    <p className="text-xs text-zinc-400 mt-1.5">Progress Score: <span className={cn('font-semibold', score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600')}>{score}%</span></p>
+                  </div>
+                  
+                  {/* Manager Comment Bubble */}
+                  {existing?.managerComment && (
+                    <div className="flex-1 ml-6 p-2.5 bg-violet-50 border border-violet-100 rounded-xl relative animate-fade-in">
+                      <div className="absolute -left-1.5 top-3 w-3 h-3 bg-violet-50 border-l border-b border-violet-100 rotate-45" />
+                      <p className="text-[10px] font-bold text-violet-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <ShieldCheck size={10} /> Manager Feedback
+                      </p>
+                      <p className="text-xs text-violet-800 italic leading-relaxed">"{existing.managerComment}"</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
