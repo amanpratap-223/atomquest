@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils';
-import { Bell, Plus, Trash2, ToggleLeft, ToggleRight, Clock, Users, CheckSquare, AlertTriangle, Info } from 'lucide-react';
+import { Bell, Plus, Trash2, ToggleLeft, ToggleRight, Clock, Users, CheckSquare, AlertTriangle, Info, Play, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type TriggerType = 'goal_not_submitted' | 'goal_not_approved' | 'checkin_not_submitted';
@@ -31,13 +31,49 @@ const INITIAL_RULES: EscalationRule[] = [
   { id: 'er3', name: 'Check-in Reminder',        trigger: 'checkin_not_submitted', thresholdDays: 7, notifyEmployee: true, notifyManager: true, notifyAdmin: false, isActive: false },
 ];
 
+import { useNotificationStore } from '@/store/notificationStore';
+
 const AdminEscalationPage: React.FC = () => {
   const [rules, setRules]         = useState<EscalationRule[]>(INITIAL_RULES);
   const [showForm, setShowForm]   = useState(false);
+  const { addNotification }       = useNotificationStore();
   const [form, setForm]           = useState<Partial<EscalationRule>>({
     trigger: 'goal_not_submitted', thresholdDays: 5,
     notifyEmployee: true, notifyManager: true, notifyAdmin: false, isActive: true,
   });
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const runManualCheck = async () => {
+    setIsSyncing(true);
+    await new Promise(r => setTimeout(r, 1500));
+
+    // 1. Employee Notification
+    addNotification({
+      text: '🚨 Escalation: Your goals are 5 days overdue. Please submit now.',
+      type: 'error',
+      role: 'employee',
+    });
+
+    // 2. Manager Notification
+    addNotification({
+      text: '⚠️ Alert: 3 team members have not submitted goals. Follow-up required.',
+      type: 'warning',
+      role: 'manager',
+    });
+
+    // 3. Admin/HR Notification
+    addNotification({
+      text: '📊 Escalation Scan: 12 violations found. Reports sent to Teams.',
+      type: 'success',
+      role: 'admin',
+    });
+
+    toast.success('Escalation check complete! 3 role-based alerts added to bell icons.', {
+      icon: '🚀',
+      duration: 5000,
+    });
+    setIsSyncing(false);
+  };
 
   const toggleRule = (id: string) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r));
@@ -65,6 +101,19 @@ const AdminEscalationPage: React.FC = () => {
 
   return (
     <AppLayout title="Escalation Rules" subtitle="Configure automated notifications for overdue goals, approvals, and check-ins">
+      <div className="flex justify-end mb-4">
+        <button 
+          onClick={runManualCheck}
+          disabled={isSyncing}
+          className={cn(
+            "btn-primary flex items-center gap-2",
+            isSyncing && "opacity-80 cursor-wait"
+          )}
+        >
+          {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
+          Run Manual Escalation Check
+        </button>
+      </div>
       {/* Info banner */}
       <div className="mb-5 p-4 bg-violet-50 border border-violet-200 rounded-2xl flex gap-3">
         <Info size={18} className="text-violet-500 flex-shrink-0 mt-0.5" />
