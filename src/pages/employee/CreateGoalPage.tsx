@@ -176,6 +176,7 @@ const CreateGoalPage: React.FC = () => {
                     <input
                       type="number"
                       {...field}
+                      onFocus={e => e.target.select()}
                       onChange={e => field.onChange(Number(e.target.value))}
                       className="input"
                       min={10} max={100} step={5}
