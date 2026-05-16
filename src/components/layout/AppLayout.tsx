@@ -145,23 +145,103 @@ export const Sidebar: React.FC = () => {
 interface TopBarProps { title: string; subtitle?: string; }
 
 export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const [showNotifs, setShowNotifs]   = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+
+  const handleLogout = () => { logout(); navigate('/login'); };
+
+  const NOTIFICATIONS = [
+    { id: 1, text: 'Aman Sharma submitted goal sheet for approval', time: '10 min ago', unread: true,  color: 'bg-violet-400' },
+    { id: 2, text: 'Q2 check-in window opens tomorrow', time: '1 hr ago',  unread: true,  color: 'bg-amber-400' },
+    { id: 3, text: 'Priya Mehta\'s goals approved & locked', time: '2 hr ago',  unread: false, color: 'bg-emerald-400' },
+  ];
+
   return (
     <header className="h-16 bg-white border-b border-zinc-100 flex items-center px-6 gap-4 sticky top-0 z-20">
       <div className="flex-1">
         <h1 className="text-lg font-semibold text-zinc-900 leading-none">{title}</h1>
         {subtitle && <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-3">
-        <button className="relative p-2 rounded-xl hover:bg-zinc-50 transition-all">
-          <Bell size={18} className="text-zinc-400" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-violet-500 rounded-full" />
-        </button>
-        {user && <Avatar name={user.name} size="sm" />}
+
+      <div className="flex items-center gap-2">
+        {/* ── Notification Bell ── */}
+        <div className="relative">
+          <button
+            onClick={() => { setShowNotifs(s => !s); setShowProfile(false); }}
+            className="relative p-2 rounded-xl hover:bg-zinc-50 transition-all"
+          >
+            <Bell size={18} className="text-zinc-400" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-violet-500 rounded-full" />
+          </button>
+
+          {showNotifs && (
+            <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-zinc-100 z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
+                <span className="text-sm font-semibold text-zinc-800">Notifications</span>
+                <span className="text-xs text-violet-600 font-medium cursor-pointer hover:underline">Mark all read</span>
+              </div>
+              <div className="divide-y divide-zinc-50 max-h-72 overflow-y-auto">
+                {NOTIFICATIONS.map(n => (
+                  <div key={n.id} className={cn('flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors cursor-pointer', n.unread && 'bg-violet-50/40')}>
+                    <div className={cn('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', n.color)} />
+                    <div className="flex-1">
+                      <p className="text-xs text-zinc-700 leading-relaxed">{n.text}</p>
+                      <p className="text-[10px] text-zinc-400 mt-0.5">{n.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-2.5 border-t border-zinc-100 text-center">
+                <span className="text-xs text-violet-600 font-medium cursor-pointer hover:underline">View all notifications</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Avatar / Profile ── */}
+        {user && (
+          <div className="relative">
+            <button
+              onClick={() => { setShowProfile(s => !s); setShowNotifs(false); }}
+              className="flex items-center gap-2 p-1 rounded-xl hover:bg-zinc-50 transition-all"
+            >
+              <Avatar name={user.name} size="sm" />
+            </button>
+
+            {showProfile && (
+              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-zinc-100 z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-100">
+                  <p className="text-sm font-semibold text-zinc-800">{user.name}</p>
+                  <p className="text-xs text-zinc-400">{user.email}</p>
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-[10px] font-medium capitalize">{user.role}</span>
+                </div>
+                <div className="py-1">
+                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
+                    <Settings size={14} className="text-zinc-400" /> Account Settings
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut size={14} /> Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Close dropdowns on outside click */}
+      {(showNotifs || showProfile) && (
+        <div className="fixed inset-0 z-40" onClick={() => { setShowNotifs(false); setShowProfile(false); }} />
+      )}
     </header>
   );
 };
+
 
 // ─── App Layout ───────────────────────────────────────────────────────────────
 interface AppLayoutProps {
