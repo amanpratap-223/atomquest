@@ -98,9 +98,26 @@ const AuditTrailPage: React.FC = () => {
                   <Badge variant={ACTION_VARIANTS[log.action]}>{log.action}</Badge>
                   <span className="text-xs text-zinc-400 capitalize">· {log.entityType}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-600">
-                  <span>Field: <strong className="text-zinc-800">{log.field}</strong></span>
-                  {log.oldValue && <><span className="text-zinc-300">·</span><span className="line-through text-zinc-400">{log.oldValue}</span><span className="text-zinc-300">→</span><span className="text-emerald-600 font-medium">{log.newValue}</span></>}
+                <div className="flex items-center gap-2 text-xs text-zinc-600 flex-wrap mt-1">
+                  <span className="text-zinc-500">Field: <strong className="text-zinc-800">{log.field}</strong></span>
+                  {log.oldValue && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200 font-mono font-medium">
+                        {log.oldValue}
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-zinc-300 flex-shrink-0">
+                        <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-medium">
+                        {log.newValue}
+                      </span>
+                    </div>
+                  )}
+                  {!log.oldValue && log.newValue && (
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-medium">
+                      {log.newValue}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
