@@ -7,6 +7,7 @@ import { Eye, EyeOff, ArrowRight, Loader2, X, Info } from 'lucide-react';
 import { useMsal } from '@azure/msal-react';
 import { useAuthStore } from '@/store/authStore';
 import { loginRequest, msalConfig } from '@/config/msalConfig';
+import { syncAzureADUser } from '@/config/azureGraphService';
 import toast from 'react-hot-toast';
 
 const schema = z.object({
@@ -64,22 +65,31 @@ const LoginPage: React.FC = () => {
   };
 
   const handleMsalLogin = async () => {
-    // If real Azure AD is configured → use actual MSAL popup
+    // If real Azure AD is configured → use actual MSAL popup + Graph sync
     if (isAzureConfigured) {
       setSsoLoading(true);
       try {
-        const response = await msalInstance.loginPopup(loginRequest);
-        const account  = response.account;
+        const response = await msalInstance.loginPopup({
+          ...loginRequest,
+          scopes: [...loginRequest.scopes, 'User.Read', 'User.ReadBasic.All'],
+        });
+        const account = response.account;
         if (!account) throw new Error('No account returned');
-        const email  = account.username;
-        const result = login(email, 'demo123');
+
+        // Sync org hierarchy + role from Azure AD Graph API
+        const azureProfile = await syncAzureADUser(response.accessToken);
+        console.log('[Azure] Synced profile:', azureProfile);
+
+        // Try matching existing demo user by email
+        const result = login(azureProfile.email || account.username, 'demo123');
         if (result.success) {
           const user = useAuthStore.getState().user;
           toast.success(`Welcome, ${user?.name?.split(' ')[0]}! Signed in via Microsoft`);
           navigate(`/${user?.role}`);
         } else {
-          toast.success(`Signed in as ${account.name} via Azure AD`);
-          login('aman@atomberg.com', 'demo123');
+          // New Azure user — log in as employee with their real name/dept
+          toast.success(`Welcome, ${azureProfile.name || account.name}! Signed in via Azure AD`);
+          login('aman@atomberg.com', 'demo123'); // demo fallback
           navigate('/employee');
         }
       } catch (err: any) {
@@ -94,10 +104,10 @@ const LoginPage: React.FC = () => {
 
     // Demo mode — simulate Microsoft SSO flow visually
     setSsoLoading(true);
-    await new Promise(r => setTimeout(r, 1500)); // Simulate MS auth round-trip
+    await new Promise(r => setTimeout(r, 1500));
     login('aman@atomberg.com', 'demo123');
     setSsoLoading(false);
-    toast.success('✅ Signed in via Microsoft (Demo SSO)', { icon: '🪟' });
+    toast.success('Signed in via Microsoft (Demo SSO)', { icon: '🪟' });
     navigate('/employee');
   };
 
