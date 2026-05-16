@@ -55,8 +55,7 @@ const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    const result = login(data.email, data.password);
+    const result = await login(data.email, data.password);
     setLoading(false);
     if (!result.success) { toast.error(result.error || 'Login failed'); return; }
     const user = useAuthStore.getState().user;
@@ -81,15 +80,14 @@ const LoginPage: React.FC = () => {
         console.log('[Azure] Synced profile:', azureProfile);
 
         // Try matching existing demo user by email
-        const result = login(azureProfile.email || account.username, 'demo123');
+        const result = await login(azureProfile.email || account.username, 'demo123');
         if (result.success) {
           const user = useAuthStore.getState().user;
           toast.success(`Welcome, ${user?.name?.split(' ')[0]}! Signed in via Microsoft`);
           navigate(`/${user?.role}`);
         } else {
-          // New Azure user — log in as employee with their real name/dept
           toast.success(`Welcome, ${azureProfile.name || account.name}! Signed in via Azure AD`);
-          login('aman@atomberg.com', 'demo123'); // demo fallback
+          await login('aman@atomberg.com', 'demo123'); // demo fallback
           navigate('/employee');
         }
       } catch (err: any) {
@@ -105,7 +103,7 @@ const LoginPage: React.FC = () => {
     // Demo mode — simulate Microsoft SSO flow visually
     setSsoLoading(true);
     await new Promise(r => setTimeout(r, 1500));
-    login('aman@atomberg.com', 'demo123');
+    await login('aman@atomberg.com', 'demo123');
     setSsoLoading(false);
     toast.success('Signed in via Microsoft (Demo SSO)', { icon: '🪟' });
     navigate('/employee');
