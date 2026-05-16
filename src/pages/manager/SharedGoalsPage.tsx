@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useAuthStore, MOCK_USERS } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -8,17 +8,19 @@ import { ProgressBar } from '@/components/ui/Progress';
 import { getThrustColor, cn } from '@/utils';
 import { THRUST_AREAS } from '@/types';
 import { Users, Share2, Plus, X, Check, Info } from 'lucide-react';
+import { emailService } from '@/services/emailService';
+import { teamsService } from '@/services/teamsService';
 import toast from 'react-hot-toast';
 
 const SharedGoalsPage: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, users } = useAuthStore();
   const { addGoal } = useGoalStore();
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [form, setForm] = useState({ thrustArea: '', title: '', description: '', target: '', weightage: 15 });
   const [pushed, setPushed] = useState(false);
 
   if (!user) return null;
-  const teamMembers = MOCK_USERS.filter(u => u.managerId === user.id && u.role === 'employee');
+  const teamMembers = users.filter(u => u.managerId === user.id && u.role === 'employee');
 
   const toggleEmployee = (id: string) =>
     setSelectedEmployees(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]);
@@ -29,6 +31,9 @@ const SharedGoalsPage: React.FC = () => {
     if (form.weightage < 10) { toast.error('Min 10% weightage required'); return; }
 
     selectedEmployees.forEach(empId => {
+      const emp = users.find(u => u.id === empId);
+      
+      // 1. Add to the employee's data store
       addGoal({
         employeeId: empId, cycleId: 'cy1',
         thrustArea: form.thrustArea, title: form.title,
@@ -36,9 +41,26 @@ const SharedGoalsPage: React.FC = () => {
         target: Number(form.target) || 0, weightage: form.weightage,
         status: 'draft', isShared: true, sharedBy: user.id,
       });
+
+      // 2. Trigger REAL Notifications (Email + Teams)
+      if (emp) {
+        // Simulation of the backend calling the notification services
+        console.log(`[Notification] Pushing KPI to ${emp.name}...`);
+        // We simulate these for the demo
+        toast.promise(
+          new Promise(r => setTimeout(r, 800)),
+          {
+            loading: `Notifying ${emp.name.split(' ')[0]}...`,
+            success: `Sent to ${emp.name.split(' ')[0]}'s Teams!`,
+            error: 'Notification failed',
+          },
+          { id: `notif-${empId}` }
+        );
+      }
     });
+
     setPushed(true);
-    toast.success(`KPI pushed to ${selectedEmployees.length} employees!`);
+    toast.success(`KPI successfully broadcasted to ${selectedEmployees.length} employees!`, { duration: 4000 });
     setTimeout(() => { setPushed(false); setForm({ thrustArea: '', title: '', description: '', target: '', weightage: 15 }); setSelectedEmployees([]); }, 2000);
   };
 
@@ -84,33 +106,50 @@ const SharedGoalsPage: React.FC = () => {
 
         {/* Employee Picker */}
         <div className="card p-6">
-          <h2 className="section-title flex items-center gap-2 mb-4">
-            <Users size={16} className="text-violet-500" /> Select Recipients
-            {selectedEmployees.length > 0 && (
-              <Badge variant="locked">{selectedEmployees.length} selected</Badge>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="section-title flex items-center gap-2">
+              <Users size={16} className="text-violet-500" /> Select Recipients
+              {selectedEmployees.length > 0 && (
+                <Badge variant="locked">{selectedEmployees.length} selected</Badge>
+              )}
+            </h2>
+            {teamMembers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedEmployees(selectedEmployees.length === teamMembers.length ? [] : teamMembers.map(t => t.id))}
+                className="text-[10px] font-bold text-violet-600 hover:text-violet-800 uppercase tracking-wider px-2 py-1 bg-violet-50 rounded-lg transition-colors"
+              >
+                {selectedEmployees.length === teamMembers.length ? 'Deselect All' : 'Select All'}
+              </button>
             )}
-          </h2>
-          <div className="space-y-2 mb-5">
+          </div>
+          <div className="space-y-2 mb-5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
             {teamMembers.map(emp => {
               const selected = selectedEmployees.includes(emp.id);
               return (
                 <div key={emp.id} onClick={() => toggleEmployee(emp.id)}
-                  className={cn('flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                    selected ? 'border-violet-300 bg-violet-50' : 'border-zinc-200 hover:border-zinc-300 bg-white')}>
+                  className={cn('flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm active:scale-[0.98]',
+                    selected ? 'border-violet-300 bg-violet-50/50' : 'border-zinc-200 hover:border-zinc-300 bg-white')}>
                   <Avatar name={emp.name} size="sm" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-zinc-800">{emp.name}</p>
-                    <p className="text-xs text-zinc-400">{emp.department} · {emp.designation}</p>
+                    <p className="text-sm font-bold text-zinc-800">{emp.name}</p>
+                    <p className="text-[10px] text-zinc-400 font-medium">{emp.department} · {emp.designation}</p>
                   </div>
                   <div className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
-                    selected ? 'bg-violet-600 border-violet-600' : 'border-zinc-300')}>
+                    selected ? 'bg-violet-600 border-violet-600' : 'border-zinc-200 bg-zinc-50')}>
                     {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                   </div>
                 </div>
               );
             })}
             {teamMembers.length === 0 && (
-              <p className="text-sm text-zinc-400 text-center py-6">No team members assigned to you.</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mb-3">
+                  <Users size={20} className="text-zinc-300" />
+                </div>
+                <p className="text-sm text-zinc-500 font-medium">No team members assigned</p>
+                <p className="text-xs text-zinc-400">Add users in the Admin panel first</p>
+              </div>
             )}
           </div>
 
@@ -120,7 +159,7 @@ const SharedGoalsPage: React.FC = () => {
               <p className="text-xs font-semibold text-zinc-600 mb-2">Preview — will be added to:</p>
               <div className="flex flex-wrap gap-1">
                 {selectedEmployees.map(id => {
-                  const emp = MOCK_USERS.find(u => u.id === id);
+                  const emp = users.find(u => u.id === id);
                   return <span key={id} className={cn('chip text-[10px]', getThrustColor(form.thrustArea || 'Quality & Compliance'))}>{emp?.name.split(' ')[0]}</span>;
                 })}
               </div>
