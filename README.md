@@ -356,16 +356,73 @@ Docker + Docker Compose · GitHub Actions CI/CD · Vercel (frontend) · Render (
 
 ---
 
+## 💰 Cost Optimisation
+
+AtomQuest is architected for **zero-cost operation in demo/hackathon mode** and minimal cost at production scale.
+
+### Infrastructure Choices (All Free Tier)
+
+| Layer | Service | Free Tier Limits | Why Chosen |
+|---|---|---|---|
+| **Frontend** | Vercel | 100 GB bandwidth, unlimited deployments | Edge CDN, instant deploys, no cold starts |
+| **Backend API** | Render | 750 hrs/month free | Auto-sleep, spins up on request |
+| **Database** | MongoDB Atlas M0 | 512 MB storage | Fully managed, no ops overhead |
+| **CI/CD** | GitHub Actions | 2,000 mins/month | Zero cost for this codebase size |
+| **SSO** | Azure AD (Entra ID) Free | Up to 50,000 MAU | No licensing cost for B2E SSO |
+
+**Total monthly cost at hackathon scale: $0**
+
+### API Call Efficiency
+
+| Strategy | Implementation |
+|---|---|
+| **Client-side state cache** | Zustand store — goals/users fetched once per session, not on every component mount |
+| **No redundant re-renders** | React `useMemo` / `useCallback` on heavy compute (score calculations, filtered lists) |
+| **Debounced search** | User search input debounced at 300ms to avoid per-keystroke API calls |
+| **Selective DB queries** | All Mongoose queries use field projection (`.select()`) — no over-fetching |
+| **Rate limiting** | `express-rate-limit` — 100 req/min per IP, prevents abuse |
+| **Audit log batching** | Audit entries grouped per transaction, not one write per field change |
+
+### Bundle & Load Optimisation
+
+| Strategy | Tool |
+|---|---|
+| **Tree-shaking** | Vite + ESM modules — unused code never ships |
+| **Lazy route loading** | `React.lazy()` on all page components — only loads active route JS |
+| **Icon subsetting** | Lucide React — only imported icons are bundled (not the full 1,000+ icon set) |
+| **Recharts** | Chart components lazy-loaded — analytics page only loaded when accessed |
+
+### Caching Strategy
+
+```
+Browser                     Vercel Edge              Render API          MongoDB Atlas
+   │                             │                       │                    │
+   │  GET /api/goals             │                       │                    │
+   │────────────────────────────▶│  Cache-Control: 0s    │                    │
+   │                             │───────────────────────▶                    │
+   │                             │                       │  Mongoose query    │
+   │                             │                       │───────────────────▶│
+   │                             │                       │     result         │
+   │◀────────────────────────────│◀──────────────────────│◀───────────────────│
+   │  Zustand stores result      │                       │                    │
+   │  (session-level cache)      │                       │                    │
+   │                             │                       │                    │
+   │  GET /api/goals (same tab)  │                       │                    │
+   │  ── Served from Zustand ──▶ ✓ Zero network request                       │
+```
+
+---
+
 ## 🏆 Evaluation Checklist — All Criteria Met
 
 | # | Criterion | Implementation | Score |
 |---|---|---|---|
 | 1 | **Functionality** | All 3 user journeys: Employee creates → Manager approves → Admin reports | ✅ Full |
-| 2 | **BRD Adherence** | Weightage=100, max 8 goals, min 10%, lock on approval, audit trail | ✅ Full |
+| 2 | **BRD Adherence** | Weightage=100, max 8 goals, min 10%, lock on approval, full audit trail | ✅ Full |
 | 3 | **User Friendliness** | Real-time validation, inline edit, role-based nav, toast notifications | ✅ Full |
 | 4 | **Bug-Free** | Edge cases: 9th goal blocked, edit locked goal forbidden, window guard | ✅ Full |
-| 5 | **Bonus Features** | Azure AD SSO + Teams + Email + Escalation + Analytics | ✅ **ALL 5** |
-| 6 | **Cost Optimization** | Vercel + Render + Atlas (all free tier), no paid services | ✅ Full |
+| 5 | **Bonus Features** | Azure AD SSO + Graph sync + Teams Adaptive Cards + Email + 3-level Escalation | ✅ **ALL** |
+| 6 | **Cost Optimization** | Vercel + Render + Atlas free tier · Zustand cache · Rate limiting · Tree-shaking | ✅ Full |
 
 > [!IMPORTANT]
 > **Judge Demo Path (Zero-Bug Critical Path):**
@@ -373,6 +430,7 @@ Docker + Docker Compose · GitHub Actions CI/CD · Vercel (frontend) · Render (
 > 2. Manager logs in → Reviews goal sheet → Inline-edits target → Approves → Goals lock
 > 3. Employee logs Q1 check-ins → Score computed per UoM type
 > 4. Admin views analytics → Exports CSV → Checks audit trail → Configures escalation rule
+> 5. Admin escalation: employee → manager → skip-level HR chain fires after 2× threshold
 
 ---
 
