@@ -9,10 +9,12 @@ import { cn, getThrustColor, validateWeightage } from '@/utils';
 import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Edit3, MessageSquare, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GoalSheet } from '@/types';
+import { useNotificationStore } from '@/store/notificationStore';
 
 const ManagerApprovalPage: React.FC = () => {
   const { user } = useAuthStore();
   const { getTeamGoalSheets, approveGoalSheet, rejectGoalSheet, inlineUpdateGoal } = useGoalStore();
+  const { addNotification } = useNotificationStore();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [comment, setComment] = useState<Record<string, string>>({});
   const [editTargets, setEditTargets] = useState<Record<string, any>>({});
@@ -40,6 +42,14 @@ const ManagerApprovalPage: React.FC = () => {
       }
     });
     approveGoalSheet(sheet.employeeId, sheet.cycleId);
+    
+    // Notify Employee
+    addNotification({
+      text: `🎉 Your goals for ${sheet.cycleId} have been approved and locked!`,
+      type: 'success',
+      role: 'employee',
+    });
+
     setExpanded(null);
     toast.success(`Goals approved and locked for ${sheet.employee.name}`);
   };
@@ -48,6 +58,14 @@ const ManagerApprovalPage: React.FC = () => {
     const c = comment[sheet.employeeId];
     if (!c?.trim()) { toast.error('Please add a comment before returning for rework.'); return; }
     rejectGoalSheet(sheet.employeeId, sheet.cycleId, c);
+    
+    // Notify Employee
+    addNotification({
+      text: `⚠️ Your goal sheet was returned for rework. Reason: ${c}`,
+      type: 'warning',
+      role: 'employee',
+    });
+
     setExpanded(null);
     toast.success(`Returned to ${sheet.employee.name} for rework.`);
   };
