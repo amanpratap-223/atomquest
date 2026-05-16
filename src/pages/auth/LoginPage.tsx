@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, ArrowRight, Loader2, Zap } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Loader2, X, Info } from 'lucide-react';
 import { useMsal } from '@azure/msal-react';
 import { useAuthStore } from '@/store/authStore';
-import { loginRequest } from '@/config/msalConfig';
+import { loginRequest, msalConfig } from '@/config/msalConfig';
 import toast from 'react-hot-toast';
 
 const schema = z.object({
@@ -33,9 +33,22 @@ const LoginPage: React.FC = () => {
   const navigate  = useNavigate();
   const { login } = useAuthStore();
   const { instance: msalInstance } = useMsal();
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [showPass, setShowPass]     = useState(false);
+  const [loading, setLoading]       = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
+  const [showAzureInfo, setShowAzureInfo] = useState(false);
+
+  // Detect if Azure AD is configured with real credentials
+  const isAzureConfigured = (() => {
+    try {
+      const auth = msalConfig.auth;
+      return auth.clientId &&
+        auth.clientId !== 'your-azure-client-id' &&
+        !auth.clientId.includes('your-') &&
+        auth.authority &&
+        !auth.authority.includes('your-tenant-id');
+    } catch { return false; }
+  })();
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
 
@@ -51,27 +64,30 @@ const LoginPage: React.FC = () => {
   };
 
   const handleMsalLogin = async () => {
+    // If not configured, show info modal instead of crashing to Microsoft error page
+    if (!isAzureConfigured) {
+      setShowAzureInfo(true);
+      return;
+    }
     setSsoLoading(true);
     try {
       const response = await msalInstance.loginPopup(loginRequest);
       const account  = response.account;
       if (!account) throw new Error('No account returned');
-      // Map MS account to app user (demo: use email to match)
-      const email = account.username;
+      const email  = account.username;
       const result = login(email, 'demo123');
       if (result.success) {
         const user = useAuthStore.getState().user;
         toast.success(`Welcome, ${user?.name?.split(' ')[0]}! Signed in via Microsoft`);
         navigate(`/${user?.role}`);
       } else {
-        // Create session as employee from MS account
         toast.success(`Signed in as ${account.name} via Azure AD`);
-        login('aman@atomberg.com', 'demo123'); // fallback for demo
+        login('aman@atomberg.com', 'demo123');
         navigate('/employee');
       }
     } catch (err: any) {
       if (err.errorCode !== 'user_cancelled') {
-        toast.error('Azure AD sign-in failed. Please use manual login for demo.');
+        toast.error('Azure AD sign-in failed. Use demo login below.');
       }
     } finally {
       setSsoLoading(false);
@@ -133,7 +149,7 @@ const LoginPage: React.FC = () => {
             type="button"
             onClick={handleMsalLogin}
             disabled={ssoLoading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border-2 border-zinc-200 hover:border-blue-300 hover:bg-blue-50 transition-all mb-4 group"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border-2 border-zinc-200 hover:border-blue-300 hover:bg-blue-50 transition-all mb-4 group relative"
           >
             {ssoLoading ? (
               <Loader2 size={18} className="animate-spin text-blue-600" />
@@ -148,8 +164,64 @@ const LoginPage: React.FC = () => {
             <span className="text-sm font-semibold text-zinc-700 group-hover:text-blue-700">
               {ssoLoading ? 'Signing in...' : 'Sign in with Microsoft'}
             </span>
-            <span className="ml-auto text-[10px] font-medium px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">Azure AD</span>
+            <span className={`ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full ${
+              isAzureConfigured
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-amber-100 text-amber-600'
+            }`}>
+              {isAzureConfigured ? 'Azure AD' : 'Setup Required'}
+            </span>
           </button>
+
+          {/* Azure AD Info Modal */}
+          {showAzureInfo && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowAzureInfo(false)} />
+              <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-blue-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <Info size={17} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-zinc-900">Azure AD SSO — Setup Required</h3>
+                      <p className="text-xs text-zinc-500">Configure your Microsoft tenant to enable SSO</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowAzureInfo(false)} className="p-1.5 rounded-lg hover:bg-zinc-100">
+                    <X size={15} className="text-zinc-400" />
+                  </button>
+                </div>
+                <div className="p-5 space-y-3">
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    Azure AD SSO is fully implemented using <strong>MSAL.js</strong>. To activate it, add your Microsoft tenant credentials:
+                  </p>
+                  <div className="bg-zinc-900 rounded-xl p-4 font-mono text-xs space-y-1">
+                    <p className="text-zinc-400"># In <span className="text-amber-300">.env.local</span></p>
+                    <p><span className="text-blue-400">VITE_AZURE_TENANT_ID</span>=<span className="text-emerald-400">your-actual-tenant-id</span></p>
+                    <p><span className="text-blue-400">VITE_AZURE_CLIENT_ID</span>=<span className="text-emerald-400">your-actual-client-id</span></p>
+                  </div>
+                  <div className="space-y-1.5 text-xs text-zinc-500">
+                    <p className="font-medium text-zinc-700">How to get these values:</p>
+                    <p>1. Go to <strong>portal.azure.com</strong> → Azure Active Directory</p>
+                    <p>2. App Registrations → New Registration → name it "AtomQuest"</p>
+                    <p>3. Copy <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong></p>
+                    <p>4. Add redirect URI: <code className="bg-zinc-100 px-1 rounded">http://localhost:5173</code></p>
+                  </div>
+                  <div className="pt-2 border-t border-zinc-100">
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                      💡 For this demo, use the <strong>Quick Demo Login</strong> buttons below instead.
+                    </p>
+                  </div>
+                </div>
+                <div className="px-5 py-3 border-t border-zinc-100 flex justify-end gap-2">
+                  <button onClick={() => setShowAzureInfo(false)} className="btn-secondary text-sm">Got it</button>
+                  <button onClick={() => { setShowAzureInfo(false); (document.querySelector('button.\\!bg-violet-50') as HTMLButtonElement)?.click(); }}
+                    className="btn-primary text-sm">Use Demo Login</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-zinc-100" />
