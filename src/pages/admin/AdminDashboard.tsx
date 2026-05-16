@@ -2,7 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
-import { MOCK_USERS } from '@/store/authStore';
+
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressBar, ScoreRing } from '@/components/ui/Progress';
@@ -15,11 +15,11 @@ import toast from 'react-hot-toast';
 const PIE_COLORS = ['#8b5cf6','#22c55e','#f59e0b','#f43f5e','#06b6d4','#ec4899','#10b981','#6366f1'];
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, users } = useAuthStore();
   const { goals, getTeamGoalSheets } = useGoalStore();
 
-  const allEmployees = MOCK_USERS.filter(u => u.role === 'employee');
-  const allManagers  = MOCK_USERS.filter(u => u.role === 'manager');
+  const allEmployees = users.filter(u => u.role === 'employee');
+  const allManagers  = users.filter(u => u.role === 'manager');
 
   const allGoals    = goals;
   const approved    = allGoals.filter(g => g.status === 'locked' || g.status === 'approved').length;
@@ -55,7 +55,7 @@ const AdminDashboard: React.FC = () => {
   const handleExport = () => {
     const csv = ['Employee,Department,Goal Title,Thrust Area,UoM,Target,Weightage,Status',
       ...allGoals.map(g => {
-        const emp = MOCK_USERS.find(u => u.id === g.employeeId);
+        const emp = users.find(u => u.id === g.employeeId);
         return `"${emp?.name}","${emp?.department}","${g.title}","${g.thrustArea}","${g.uomType}","${g.target}","${g.weightage}%","${g.status}"`;
       })
     ].join('\n');
