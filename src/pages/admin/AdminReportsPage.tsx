@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { MOCK_USERS } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
 import { Badge } from '@/components/ui/Badge';
 import { getThrustColor, cn } from '@/utils';
@@ -9,7 +9,8 @@ import toast from 'react-hot-toast';
 
 const AdminReportsPage: React.FC = () => {
   const { goals, checkins } = useGoalStore();
-  const employees = MOCK_USERS.filter(u => u.role === 'employee');
+  const { users } = useAuthStore();
+  const employees = users.filter(u => u.role === 'employee');
 
   const handleExport = () => {
     const rows = ['Employee,Department,Goal Title,Thrust Area,UoM,Target,Weightage,Status,Q1 Achievement,Q1 Score'];
