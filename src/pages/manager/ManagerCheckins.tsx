@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { ScoreRing, ProgressBar } from '@/components/ui/Progress';
 import { Badge } from '@/components/ui/Badge';
@@ -63,41 +64,73 @@ const ManagerCheckins: React.FC = () => {
                   {lockedGoals.map(goal => {
                     const ci = checkins.find(c => c.goalId === goal.id);
                     return (
-                      <div key={goal.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl">
-                        <span className={cn('chip text-[10px]', getThrustColor(goal.thrustArea))}>
-                          {goal.thrustArea.split(' & ')[0]}
-                        </span>
-                        <span className="text-sm text-zinc-700 flex-1">{goal.title}</span>
-                        <span className="text-xs text-zinc-500">Target: {goal.uomType === 'Timeline' ? String(goal.target).split('T')[0] : goal.target}</span>
-                        {ci ? (
-                          <>
-                            <span className="text-xs font-medium text-zinc-700">Actual: {String(ci.actualAchievement)}</span>
-                            <ScoreRing score={ci.progressScore} size={40} strokeWidth={4} />
-                          </>
-                        ) : (
-                          <Badge variant="draft">Not submitted</Badge>
+                      <div key={goal.id} className="flex flex-col gap-3 p-3 bg-zinc-50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <span className={cn('chip text-[10px]', getThrustColor(goal.thrustArea))}>
+                            {goal.thrustArea.split(' & ')[0]}
+                          </span>
+                          <span className="text-sm font-medium text-zinc-700 flex-1">{goal.title}</span>
+                          <span className="text-xs text-zinc-500">Target: {goal.uomType === 'Timeline' ? String(goal.target).split('T')[0] : goal.target}</span>
+                          {ci ? (
+                            <>
+                              <span className="text-xs font-medium text-zinc-700">Actual: {String(ci.actualAchievement)}</span>
+                              <ScoreRing score={ci.progressScore} size={40} strokeWidth={4} />
+                            </>
+                          ) : (
+                            <Badge variant="draft">Not submitted</Badge>
+                          )}
+                        </div>
+
+                        {ci && (
+                          <div className="flex flex-col gap-2 pt-2 border-t border-zinc-200 mt-1">
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-medium text-zinc-500 w-24">Task Status:</label>
+                              <select 
+                                className="input py-1 text-xs bg-white w-40"
+                                value={ci.status}
+                                onChange={(e) => {
+                                  useGoalStore.getState().updateCheckinStatus(ci.id, e.target.value as any);
+                                  toast.success('Task status updated');
+                                }}
+                              >
+                                <option value="not_started">Not Started</option>
+                                <option value="on_track">On Track</option>
+                                <option value="completed">Completed</option>
+                              </select>
+                            </div>
+                            
+                            <div className="flex gap-2 items-start">
+                              <label className="text-xs font-medium text-zinc-500 w-24 pt-2">Comment:</label>
+                              <textarea 
+                                rows={2} 
+                                className="input resize-none flex-1 py-1.5 text-xs"
+                                value={comments[ci.id] !== undefined ? comments[ci.id] : ci.managerComment || ''}
+                                onChange={e => setComments(p => ({ ...p, [ci.id]: e.target.value }))}
+                                placeholder="Add feedback for this specific task..." 
+                              />
+                              <button 
+                                onClick={() => {
+                                  const val = comments[ci.id] !== undefined ? comments[ci.id] : ci.managerComment || '';
+                                  useGoalStore.getState().addManagerComment(ci.id, val);
+                                  useNotificationStore.getState().addNotification({
+                                    text: `💬 Your manager left feedback on your check-in for "${goal.title}"`,
+                                    type: 'info',
+                                    role: 'employee',
+                                  });
+                                  toast.success('Task comment saved and notification sent!');
+                                }} 
+                                className="btn-primary py-1.5 px-3 text-xs"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
               )}
-
-              <div>
-                <label className="label flex items-center gap-1.5">
-                  <MessageSquare size={13} /> Manager Check-in Comment
-                </label>
-                <textarea rows={2} className="input resize-none"
-                  value={comments[employee.id] || ''}
-                  onChange={e => setComments(p => ({ ...p, [employee.id]: e.target.value }))}
-                  placeholder="Document the discussion, highlight achievements, note areas of improvement..." />
-                {comments[employee.id] && (
-                  <button onClick={() => {
-                    checkins.forEach(ci => addManagerComment(ci.id, comments[employee.id]));
-                    toast.success('Comment saved!');
-                  }} className="btn-primary mt-2 text-xs py-2">Save Comment</button>
-                )}
-              </div>
             </div>
           );
         })}

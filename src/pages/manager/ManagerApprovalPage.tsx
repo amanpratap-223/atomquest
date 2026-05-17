@@ -210,14 +210,14 @@ const ManagerApprovalPage: React.FC = () => {
                     )}
 
                     {/* Comment */}
-                    {sheet.status === 'submitted' && (
+                    {(sheet.status === 'submitted' || sheet.status === 'approved') && (
                       <div className="mb-4">
                         <label className="label flex items-center gap-1.5">
                           <MessageSquare size={14} /> Comment (required for return)
                         </label>
                         <textarea
                           rows={2}
-                          value={comment[sheet.employeeId] || ''}
+                          value={comment[sheet.employeeId] !== undefined ? comment[sheet.employeeId] : (sheet.goals.find(g => g.managerComment)?.managerComment || '')}
                           onChange={e => setComment(p => ({ ...p, [sheet.employeeId]: e.target.value }))}
                           className="input resize-none"
                           placeholder="Add feedback or reason for return..."
@@ -226,22 +226,46 @@ const ManagerApprovalPage: React.FC = () => {
                     )}
 
                     {/* Actions */}
-                    {sheet.status === 'submitted' && (
-                      <div className="flex items-center justify-end gap-3">
-                        <button onClick={() => handleReturn(sheet)} className="btn-danger">
-                          <XCircle size={16} /> Return for Rework
-                        </button>
-                        <button onClick={() => handleApprove(sheet)} disabled={!canApprove} className="btn-success">
-                          <CheckCircle2 size={16} /> Approve & Lock Goals
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      {sheet.status === 'approved' ? (
+                        <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
+                          <CheckCircle2 size={16} /> Goals approved and locked
+                        </div>
+                      ) : (
+                        <div />
+                      )}
 
-                    {sheet.status === 'approved' && (
-                      <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
-                        <CheckCircle2 size={16} /> Goals approved and locked
+                      <div className="flex items-center justify-end gap-3">
+                        {(sheet.status === 'submitted' || sheet.status === 'approved') && (
+                          <button 
+                            onClick={() => {
+                              const c = comment[sheet.employeeId] !== undefined ? comment[sheet.employeeId] : (sheet.goals.find(g => g.managerComment)?.managerComment || '');
+                              if (!c?.trim()) { toast.error('Please enter a comment.'); return; }
+                              useGoalStore.getState().updateGoalSheetComment(sheet.employeeId, sheet.cycleId, c);
+                              addNotification({
+                                text: `💬 Your manager left feedback on your goal sheet: "${c}"`,
+                                type: 'info',
+                                role: 'employee',
+                              });
+                              toast.success('Comment saved and notification sent!');
+                            }} 
+                            className="btn-secondary"
+                          >
+                            <MessageSquare size={16} className="mr-1 inline" /> Save Comment
+                          </button>
+                        )}
+                        {(sheet.status === 'submitted' || sheet.status === 'approved') && (
+                          <button onClick={() => handleReturn(sheet)} className="btn-danger">
+                            <XCircle size={16} /> {sheet.status === 'approved' ? 'Unlock & Return' : 'Return for Rework'}
+                          </button>
+                        )}
+                        {sheet.status === 'submitted' && (
+                          <button onClick={() => handleApprove(sheet)} disabled={!canApprove} className="btn-success">
+                            <CheckCircle2 size={16} /> Approve & Lock Goals
+                          </button>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}

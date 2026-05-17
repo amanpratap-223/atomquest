@@ -78,6 +78,8 @@ const CheckinsPage: React.FC = () => {
       });
       
       toast.success(`${activePeriod} check-in submitted successfully! Manager has been notified.`);
+      setAchievements({});
+      setStatuses({});
     } else {
       toast.error('Please enter at least one achievement value.');
     }
@@ -94,7 +96,11 @@ const CheckinsPage: React.FC = () => {
         {PERIODS.map(p => (
           <button
             key={p.key}
-            onClick={() => setActivePeriod(p.key)}
+            onClick={() => {
+              setActivePeriod(p.key);
+              setAchievements({});
+              setStatuses({});
+            }}
             className={cn(
               'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
               activePeriod === p.key
@@ -115,28 +121,39 @@ const CheckinsPage: React.FC = () => {
       </div>
 
       {/* Window Banner */}
-      {isWindowOpen ? (
-        <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
-          <Calendar size={18} className="text-amber-600 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">Q2 Check-in Window is Open</p>
-            <p className="text-xs text-amber-600">Window: October 1 – October 31, 2025 · Log your actual achievements below</p>
-          </div>
+      <div className={cn('p-4 rounded-xl border mb-6 flex items-start gap-3', isWindowOpen ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200')}>
+        {isWindowOpen ? <Calendar className="text-amber-600 mt-0.5 flex-shrink-0" size={18} /> : <Lock className="text-zinc-400 mt-0.5 flex-shrink-0" size={18} />}
+        <div>
+          <h3 className={cn('text-sm font-semibold', isWindowOpen ? 'text-amber-800' : 'text-zinc-700')}>
+            {isWindowOpen ? `${activePeriodMeta.label} Window is Open` : `${activePeriodMeta.label} Window is Closed`}
+          </h3>
+          <p className={cn('text-xs mt-0.5', isWindowOpen ? 'text-amber-700' : 'text-zinc-500')}>
+            {isWindowOpen
+              ? `Window: ${activePeriodMeta.window} · Log your actual achievements below`
+              : 'Data shown below is read-only for historical reference.'}
+          </p>
+        </div>
+        {isWindowOpen && (
           <div className="ml-auto flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">
             <span>{filledCount}</span><span className="opacity-60">/</span><span>{lockedGoals.length} filled</span>
           </div>
-        </div>
-      ) : activePeriodMeta.status === 'past' ? (
-        <div className="mb-5 p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center gap-3">
-          <Lock size={18} className="text-zinc-400 flex-shrink-0" />
-          <p className="text-sm text-zinc-500">{activePeriod} check-in window has closed. Data shown is read-only.</p>
-        </div>
-      ) : (
-        <div className="mb-5 p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
-          <Clock size={18} className="text-blue-500 flex-shrink-0" />
-          <p className="text-sm text-blue-700">{activePeriod} check-in window hasn't opened yet · Opens {activePeriodMeta.window}</p>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* General Goal Sheet Feedback */}
+      {(() => {
+        const latestComment = lockedGoals.find(g => g.managerComment)?.managerComment;
+        if (!latestComment) return null;
+        return (
+          <div className="mb-5 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+            <ShieldCheck size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-blue-700">General Goal Feedback</p>
+              <p className="text-xs mt-0.5 text-blue-600">"{latestComment}"</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* No approved goals */}
       {lockedGoals.length === 0 && (
@@ -210,7 +227,7 @@ const CheckinsPage: React.FC = () => {
                     <input
                       type="date"
                       disabled={isReadonly}
-                      value={String(ach || '')}
+                      value={ach === undefined || ach === null ? '' : String(ach)}
                       onChange={e => setAchievements(p => ({ ...p, [goal.id]: e.target.value }))}
                       className={cn('input', isReadonly && 'bg-zinc-50 text-zinc-400 cursor-not-allowed')}
                     />
@@ -219,8 +236,8 @@ const CheckinsPage: React.FC = () => {
                       type="number"
                       disabled={isReadonly || goal.isShared}
                       placeholder={goal.isShared ? 'Auto-synced from owner' : 'Enter actual value...'}
-                      value={String(ach || '')}
-                      onChange={e => setAchievements(p => ({ ...p, [goal.id]: Number(e.target.value) }))}
+                      value={ach === undefined || ach === null ? '' : String(ach)}
+                      onChange={e => setAchievements(p => ({ ...p, [goal.id]: e.target.value }))}
                       className={cn('input', (isReadonly || goal.isShared) && 'bg-zinc-50 text-zinc-400 cursor-not-allowed')}
                     />
                   )}
@@ -237,7 +254,14 @@ const CheckinsPage: React.FC = () => {
                 <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between">
                   <div>
                     <ProgressBar value={score} size="sm" className="w-48" />
-                    <p className="text-xs text-zinc-400 mt-1.5">Progress Score: <span className={cn('font-semibold', score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600')}>{score}%</span></p>
+                    <p className="text-xs text-zinc-400 mt-1.5">
+                      Progress Score: <span className={cn('font-semibold', score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600')}>{score}%</span>
+                      {goal.uomType !== 'Timeline' && goal.uomType !== 'Zero' && (
+                        <span className="text-[10px] text-zinc-400 font-normal ml-1">
+                          ({ach || 0} / {goal.target})
+                        </span>
+                      )}
+                    </p>
                   </div>
                   
                   {/* Manager Comment Bubble */}

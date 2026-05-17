@@ -32,6 +32,8 @@ const INITIAL_RULES: EscalationRule[] = [
 ];
 
 import { useNotificationStore } from '@/store/notificationStore';
+import { useAuthStore } from '@/store/authStore';
+import { useGoalStore } from '@/store/goalStore';
 
 const AdminEscalationPage: React.FC = () => {
   const [rules, setRules]         = useState<EscalationRule[]>(INITIAL_RULES);
@@ -47,28 +49,59 @@ const AdminEscalationPage: React.FC = () => {
     setIsSyncing(true);
     await new Promise(r => setTimeout(r, 1500));
 
-    // 1. Employee Notification
-    addNotification({
-      text: '🚨 Escalation: Your goals are 5 days overdue. Please submit now.',
-      type: 'error',
-      role: 'employee',
+    const { users } = useAuthStore.getState();
+    const { goals } = useGoalStore.getState();
+
+    // 1. Find employees who haven't submitted goals
+    const employees = users.filter(u => u.role === 'employee');
+    const unsubmittedEmployees = employees.filter(emp => {
+      const empGoals = goals.filter(g => g.employeeId === emp.id);
+      return empGoals.length === 0 || empGoals.some(g => g.status === 'draft' || g.status === 'rejected');
     });
 
-    // 2. Manager Notification
-    addNotification({
-      text: '⚠️ Alert: 3 team members have not submitted goals. Follow-up required.',
-      type: 'warning',
-      role: 'manager',
+    // 2. Find managers with pending approvals
+    const managers = users.filter(u => u.role === 'manager');
+    const managersWithPending = managers.filter(mgr => {
+      const teamIds = users.filter(u => u.managerId === mgr.id).map(u => u.id);
+      return goals.some(g => teamIds.includes(g.employeeId) && g.status === 'submitted');
     });
+
+    const unsubmittedCount = unsubmittedEmployees.length;
+    const pendingManagerCount = managersWithPending.length;
+
+    let totalAlerts = 0;
+
+    // 1. Employee Notification
+    if (unsubmittedCount > 0) {
+      addNotification({
+        text: `🚨 Escalation: You have unsubmitted or rejected goals. The deadline passed 5 days ago. Please submit now.`,
+        type: 'error',
+        role: 'employee',
+      });
+      totalAlerts++;
+    }
+
+    // 2. Manager Notification
+    if (unsubmittedCount > 0 || pendingManagerCount > 0) {
+      const pendingText = pendingManagerCount > 0 ? 'You have goals pending your approval.' : '';
+      const unsubText = unsubmittedCount > 0 ? `${unsubmittedCount} team members have not submitted goals.` : '';
+      addNotification({
+        text: `⚠️ Alert: ${unsubText} ${pendingText} Follow-up required.`,
+        type: 'warning',
+        role: 'manager',
+      });
+      totalAlerts++;
+    }
 
     // 3. Admin/HR Notification
     addNotification({
-      text: '📊 Escalation Scan: 12 violations found. Reports sent to Teams.',
+      text: `📊 Escalation Scan: ${unsubmittedCount} unsubmitted goal sheets, ${pendingManagerCount} managers with pending approvals. Notifications dispatched.`,
       type: 'success',
       role: 'admin',
     });
+    totalAlerts++;
 
-    toast.success('Escalation check complete! 3 role-based alerts added to bell icons.', {
+    toast.success(`Escalation check complete! ${totalAlerts} role-based alerts generated using live data.`, {
       icon: '🚀',
       duration: 5000,
     });

@@ -8,7 +8,7 @@ import { getThrustColor, validateWeightage, cn } from '@/utils';
 import { Link } from 'react-router-dom';
 import {
   Plus, Trash2, Lock, Edit3, Send, AlertCircle,
-  CheckCircle2, Info, Target, Filter,
+  CheckCircle2, Info, Target, Filter, MessageSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Goal, GoalStatus } from '@/types';
@@ -97,18 +97,31 @@ const GoalsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Rejected banner */}
-      {allGoals.some(g => g.status === 'rejected') && (
-        <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
-          <AlertCircle size={18} className="text-rose-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-rose-700">Goals Returned for Rework</p>
-            <p className="text-xs text-rose-600 mt-0.5">
-              {allGoals.find(g => g.status === 'rejected')?.managerComment || 'Your manager has requested changes. Please review and resubmit.'}
-            </p>
+      {/* Manager Feedback banner */}
+      {(() => {
+        const latestComment = allGoals.find(g => g.managerComment)?.managerComment;
+        const isRejected = allGoals.some(g => g.status === 'rejected');
+        
+        if (!latestComment && !isRejected) return null;
+        
+        return (
+          <div className={cn("mb-4 p-3 border rounded-xl flex items-start gap-3", isRejected ? "bg-rose-50 border-rose-200" : "bg-blue-50 border-blue-200")}>
+            {isRejected ? (
+              <AlertCircle size={18} className="text-rose-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <MessageSquare size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className={cn("text-sm font-semibold", isRejected ? "text-rose-700" : "text-blue-700")}>
+                {isRejected ? "Goals Returned for Rework" : "Manager Feedback"}
+              </p>
+              <p className={cn("text-xs mt-0.5", isRejected ? "text-rose-600" : "text-blue-600")}>
+                {latestComment ? `"${latestComment}"` : 'Your manager has requested changes. Please review and resubmit.'}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Goals Table */}
       <div className="card overflow-hidden">

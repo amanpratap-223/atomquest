@@ -44,6 +44,7 @@ interface GoalState {
   getTeamGoalSheets: (managerId: string) => GoalSheet[];
   approveGoalSheet: (employeeId: string, cycleId: string) => Promise<void>;
   rejectGoalSheet: (employeeId: string, cycleId: string, comment: string) => Promise<void>;
+  updateGoalSheetComment: (employeeId: string, cycleId: string, comment: string) => Promise<void>;
   inlineUpdateGoal: (id: string, target: number | string, weightage: number) => void;
 
   // Checkin actions
@@ -179,6 +180,16 @@ export const useGoalStore = create<GoalState>()(
         try { await api.post('/manager/reject', { employeeId, cycleId, comment }); } catch (_) {}
       },
 
+      updateGoalSheetComment: async (employeeId, cycleId, comment) => {
+        set(s => ({
+          goals: s.goals.map(g =>
+            g.employeeId === employeeId && g.cycleId === cycleId
+              ? { ...g, managerComment: comment, updatedAt: new Date().toISOString() }
+              : g
+          ),
+        }));
+      },
+
       inlineUpdateGoal: (id, target, weightage) => {
         set(s => ({
           goals: s.goals.map(g =>
@@ -209,7 +220,7 @@ export const useGoalStore = create<GoalState>()(
         } else {
           const newCheckin: Checkin = {
             ...checkinData,
-            id: 'ci' + Date.now(),
+            id: 'ci' + Date.now() + Math.random(),
             progressScore,
             checkinDate: new Date().toISOString(),
           };

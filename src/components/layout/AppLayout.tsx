@@ -150,7 +150,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const filteredNotifs = notifications.filter(n => n.role === user?.role || n.role === 'employee');
+  const filteredNotifs = notifications.filter(n => n.role === user?.role);
   const unreadCount = filteredNotifs.filter(n => n.unread).length;
 
   return (

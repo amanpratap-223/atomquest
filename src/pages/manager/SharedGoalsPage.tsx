@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuthStore } from '@/store/authStore';
 import { useGoalStore } from '@/store/goalStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/Progress';
 import { getThrustColor, cn } from '@/utils';
 import { THRUST_AREAS } from '@/types';
 import { Users, Share2, Plus, X, Check, Info } from 'lucide-react';
-import { emailService } from '@/services/emailService';
-import { teamsService } from '@/services/teamsService';
 import toast from 'react-hot-toast';
 
 const SharedGoalsPage: React.FC = () => {
@@ -42,8 +41,14 @@ const SharedGoalsPage: React.FC = () => {
         status: 'draft', isShared: true, sharedBy: user.id,
       });
 
-      // 2. Trigger REAL Notifications (Email + Teams)
+      // 2. Trigger REAL Notifications (Email + Teams + In-App)
       if (emp) {
+        useNotificationStore.getState().addNotification({
+          text: `🎯 New Shared KPI Assigned: "${form.title}" (Weightage: ${form.weightage}%)`,
+          type: 'info',
+          role: 'employee'
+        });
+
         // Simulation of the backend calling the notification services
         console.log(`[Notification] Pushing KPI to ${emp.name}...`);
         // We simulate these for the demo
