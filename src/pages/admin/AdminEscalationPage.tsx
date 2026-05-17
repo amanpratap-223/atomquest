@@ -157,7 +157,7 @@ const AdminEscalationPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Active Rules', value: rules.filter(r => r.isActive).length, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Total Rules',  value: rules.length,                          color: 'text-violet-600',  bg: 'bg-violet-50' },

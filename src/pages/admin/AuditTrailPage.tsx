@@ -66,7 +66,7 @@ const AuditTrailPage: React.FC = () => {
         <button onClick={handleExport} className="btn-secondary text-sm"><Download size={14} /> Export</button>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           { label: 'Total Events', value: MOCK_AUDIT_LOGS.length, bg: 'bg-violet-50', color: 'text-violet-600' },
           { label: 'Goal Changes', value: MOCK_AUDIT_LOGS.filter(l => l.entityType === 'goal').length, bg: 'bg-amber-50', color: 'text-amber-600' },

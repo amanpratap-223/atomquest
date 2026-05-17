@@ -68,7 +68,7 @@ const AdminAnalyticsPage: React.FC = () => {
   return (
     <AppLayout title="Advanced Analytics" subtitle="Quarter-on-Quarter trends, heatmaps, and org insights">
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Avg Q1 Score',     value: `${Math.round(checkins.reduce((s,c)=>s+c.progressScore,0) / Math.max(checkins.length,1))}%`, icon: Award,    color: 'text-violet-600', bg: 'bg-violet-50' },
           { label: 'Goals On Track',   value: `${checkins.filter(c=>c.status==='on_track').length}`,   icon: TrendingUp, color: 'text-amber-600',  bg: 'bg-amber-50' },
@@ -85,7 +85,7 @@ const AdminAnalyticsPage: React.FC = () => {
       </div>
 
       {/* QoQ Trend + Radar */}
-      <div className="grid grid-cols-3 gap-5 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         <div className="col-span-2 card p-5">
           <h2 className="section-title mb-1">Quarter-on-Quarter Achievement Trend</h2>
           <p className="text-xs text-zinc-400 mb-4">Achievement % by department across Q1–Q4</p>
@@ -122,7 +122,7 @@ const AdminAnalyticsPage: React.FC = () => {
       </div>
 
       {/* Heatmap + Pie charts */}
-      <div className="grid grid-cols-3 gap-5 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         <div className="col-span-2 card p-5">
           <h2 className="section-title mb-1">Department Completion Heatmap</h2>
           <p className="text-xs text-zinc-400 mb-4">Check-in completion % by department and quarter</p>
@@ -185,7 +185,7 @@ const AdminAnalyticsPage: React.FC = () => {
       </div>
 
       {/* Manager Effectiveness + UoM breakdown */}
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="card p-5">
           <h2 className="section-title mb-4">Manager Effectiveness</h2>
           <div className="space-y-3">

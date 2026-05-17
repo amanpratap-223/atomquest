@@ -67,7 +67,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <AppLayout title="Admin Dashboard" subtitle="Organization-wide goal tracking overview">
       {/* Quick Nav */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Users',      href: '/admin/users',    icon: Users },
           { label: 'Cycles',     href: '/admin/cycles',   icon: Settings },

@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Target, CheckSquare, Users, Settings,
   BarChart3, FileText, ShieldCheck, LogOut, ChevronRight,
-  Bell, ChevronDown, Repeat2, Share2,
+  Bell, ChevronDown, Repeat2, Share2, Menu, X
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
@@ -37,7 +37,9 @@ const NAV_ITEMS: Record<UserRole, { label: string; href: string; icon: React.Ele
 };
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-export const Sidebar: React.FC = () => {
+interface SidebarProps { isOpen?: boolean; setIsOpen?: (v: boolean) => void; }
+
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const { user, logout, switchRole } = useAuthStore();
   const navigate = useNavigate();
   const [showRoleSwitch, setShowRoleSwitch] = useState(false);
@@ -54,18 +56,26 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-60 bg-white border-r border-zinc-100 flex flex-col z-30 shadow-soft">
-      <div className="px-5 py-5 border-b border-zinc-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shadow-soft">
-            <span className="text-white font-bold text-sm">A</span>
+    <>
+      {isOpen && <div className="fixed inset-0 bg-zinc-900/50 z-40 lg:hidden backdrop-blur-sm animate-fade-in" onClick={() => setIsOpen?.(false)} />}
+      <aside className={cn(
+        "fixed top-0 left-0 h-screen w-64 lg:w-60 bg-white border-r border-zinc-100 flex flex-col z-50 shadow-2xl lg:shadow-soft transition-transform duration-300",
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
+        <div className="px-5 py-5 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shadow-soft">
+              <span className="text-white font-bold text-sm">A</span>
+            </div>
+            <div>
+              <p className="font-bold text-zinc-900 text-sm leading-none">AtomQuest</p>
+              <p className="text-xs text-zinc-400 mt-0.5">Goal Tracker</p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-zinc-900 text-sm leading-none">AtomQuest</p>
-            <p className="text-xs text-zinc-400 mt-0.5">Goal Tracker</p>
-          </div>
+          <button onClick={() => setIsOpen?.(false)} className="lg:hidden p-1 text-zinc-400 hover:text-zinc-600">
+            <X size={20} />
+          </button>
         </div>
-      </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(item => (
@@ -135,13 +145,14 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
     </aside>
+    </>
   );
 };
 
 // ─── Top Bar ──────────────────────────────────────────────────────────────────
-interface TopBarProps { title: string; subtitle?: string; }
+interface TopBarProps { title: string; subtitle?: string; onMenuClick?: () => void; }
 
-export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
+export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, onMenuClick }) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { notifications, markAllRead } = useNotificationStore();
@@ -154,13 +165,16 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle }) => {
   const unreadCount = filteredNotifs.filter(n => n.unread).length;
 
   return (
-    <header className="h-16 bg-white border-b border-zinc-100 flex items-center px-6 gap-4 sticky top-0 z-20">
+    <header className="h-16 lg:h-20 bg-white border-b border-zinc-100 flex items-center px-4 lg:px-6 gap-3 lg:gap-4 sticky top-0 z-20">
+      <button onClick={onMenuClick} className="lg:hidden p-2 -ml-2 text-zinc-500 hover:bg-zinc-100 rounded-lg">
+        <Menu size={20} />
+      </button>
       <div className="flex-1">
-        <h1 className="text-lg font-semibold text-zinc-900 leading-none">{title}</h1>
-        {subtitle && <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>}
+        <h1 className="text-lg lg:text-xl font-semibold text-zinc-900 leading-none">{title}</h1>
+        {subtitle && <p className="text-[10px] lg:text-xs text-zinc-400 mt-0.5">{subtitle}</p>}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 lg:gap-2">
         <div className="relative">
           <button
             onClick={() => { setShowNotifs(s => !s); setShowProfile(false); }}
@@ -247,14 +261,18 @@ interface AppLayoutProps {
   subtitle?: string;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle }) => (
-  <div className="min-h-screen bg-zinc-50">
-    <Sidebar />
-    <div className="ml-60 min-h-screen flex flex-col">
-      <TopBar title={title} subtitle={subtitle} />
-      <main className="flex-1 p-6 animate-fade-in">
-        {children}
-      </main>
+export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-zinc-50 overflow-x-hidden">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="lg:ml-60 min-h-screen flex flex-col transition-all duration-300">
+        <TopBar title={title} subtitle={subtitle} onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 p-4 lg:p-6 animate-fade-in w-full max-w-[100vw] overflow-x-hidden">
+          {children}
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
+};

@@ -214,7 +214,7 @@ const CheckinsPage: React.FC = () => {
               </div>
 
               {/* Achievement Input */}
-              <div className="mt-4 grid grid-cols-2 gap-4 pt-4 border-t border-zinc-100">
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-zinc-100">
                 <div>
                   <label className="label">Planned Target</label>
                   <div className="input bg-zinc-50 text-zinc-500 cursor-not-allowed">
