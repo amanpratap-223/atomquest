@@ -92,7 +92,7 @@ const CheckinsPage: React.FC = () => {
   return (
     <AppLayout title="Quarterly Check-ins" subtitle="Log your actual achievements against planned targets">
       {/* Period Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex overflow-x-auto pb-2 gap-2 mb-6 hide-scrollbar">
         {PERIODS.map(p => (
           <button
             key={p.key}
@@ -102,7 +102,7 @@ const CheckinsPage: React.FC = () => {
               setStatuses({});
             }}
             className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
+              'flex-shrink-0 whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
               activePeriod === p.key
                 ? 'bg-violet-600 text-white border-violet-600 shadow-soft'
                 : p.status === 'active'
@@ -121,20 +121,22 @@ const CheckinsPage: React.FC = () => {
       </div>
 
       {/* Window Banner */}
-      <div className={cn('p-4 rounded-xl border mb-6 flex items-start gap-3', isWindowOpen ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200')}>
-        {isWindowOpen ? <Calendar className="text-amber-600 mt-0.5 flex-shrink-0" size={18} /> : <Lock className="text-zinc-400 mt-0.5 flex-shrink-0" size={18} />}
-        <div>
-          <h3 className={cn('text-sm font-semibold', isWindowOpen ? 'text-amber-800' : 'text-zinc-700')}>
-            {isWindowOpen ? `${activePeriodMeta.label} Window is Open` : `${activePeriodMeta.label} Window is Closed`}
-          </h3>
-          <p className={cn('text-xs mt-0.5', isWindowOpen ? 'text-amber-700' : 'text-zinc-500')}>
-            {isWindowOpen
-              ? `Window: ${activePeriodMeta.window} · Log your actual achievements below`
-              : 'Data shown below is read-only for historical reference.'}
-          </p>
+      <div className={cn('p-4 rounded-xl border mb-6 flex flex-col sm:flex-row sm:items-start gap-3', isWindowOpen ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200')}>
+        <div className="flex gap-3">
+          {isWindowOpen ? <Calendar className="text-amber-600 mt-0.5 flex-shrink-0" size={18} /> : <Lock className="text-zinc-400 mt-0.5 flex-shrink-0" size={18} />}
+          <div>
+            <h3 className={cn('text-sm font-semibold', isWindowOpen ? 'text-amber-800' : 'text-zinc-700')}>
+              {isWindowOpen ? `${activePeriodMeta.label} Window is Open` : `${activePeriodMeta.label} Window is Closed`}
+            </h3>
+            <p className={cn('text-xs mt-0.5', isWindowOpen ? 'text-amber-700' : 'text-zinc-500')}>
+              {isWindowOpen
+                ? `Window: ${activePeriodMeta.window} · Log your actual achievements below`
+                : 'Data shown below is read-only for historical reference.'}
+            </p>
+          </div>
         </div>
         {isWindowOpen && (
-          <div className="ml-auto flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">
+          <div className="sm:ml-auto w-fit flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">
             <span>{filledCount}</span><span className="opacity-60">/</span><span>{lockedGoals.length} filled</span>
           </div>
         )}
@@ -174,28 +176,32 @@ const CheckinsPage: React.FC = () => {
 
           return (
             <div key={goal.id} className="card p-5">
-              <div className="flex items-start gap-4">
-                {/* Score Ring */}
-                <ScoreRing score={score} size={60} />
-
-                {/* Goal Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={cn('chip text-[10px]', getThrustColor(goal.thrustArea))}>
-                      {goal.thrustArea}
-                    </span>
-                    <Badge variant="info">{goal.uomType}</Badge>
-                    {goal.isShared && <Badge variant="locked">Shared</Badge>}
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  {/* Score Ring */}
+                  <div className="flex-shrink-0">
+                    <ScoreRing score={score} size={60} />
                   </div>
-                  <p className="font-semibold text-zinc-900">{goal.title}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Target: <strong>{goal.uomType === 'Timeline' ? String(goal.target).split('T')[0] : goal.target}</strong>
-                    {' · '}{goal.weightage}% weightage
-                  </p>
+  
+                  {/* Goal Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className={cn('chip text-[10px]', getThrustColor(goal.thrustArea))}>
+                        {goal.thrustArea}
+                      </span>
+                      <Badge variant="info">{goal.uomType}</Badge>
+                      {goal.isShared && <Badge variant="locked">Shared</Badge>}
+                    </div>
+                    <p className="font-semibold text-zinc-900 break-words">{goal.title}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Target: <strong>{goal.uomType === 'Timeline' ? String(goal.target).split('T')[0] : goal.target}</strong>
+                      {' · '}{goal.weightage}% weightage
+                    </p>
+                  </div>
                 </div>
 
                 {/* Status Selector */}
-                <div className="flex gap-1.5 flex-shrink-0">
+                <div className="flex flex-wrap gap-1.5 flex-shrink-0 mt-2 md:mt-0">
                   {STATUS_OPTIONS.map(s => (
                     <button
                       key={s.value}
